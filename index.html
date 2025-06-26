@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <title>Rekomendasi Tanaman Fuzzy</title>
     <style>
         body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
@@ -25,11 +26,13 @@
 </head>
 <body>
     <div class="container">
-        <h1>🌿 Sistem Rekomendasi Tanaman 🌿</h1>
+        <h1> Sistem Rekomendasi Tanaman </h1>
         <p class="description">Masukkan kondisi lingkungan untuk mendapatkan rekomendasi jenis tanaman.</p>
 
         <div class="input-group">
             <label for="suhu">Suhu Udara (°C):</label>
+            <br>
+            <label for="rentang">Dengan rentang 10 - 40</label>
             <input type="number" id="suhu" placeholder="Contoh: 25">
         </div>
 
@@ -53,32 +56,25 @@
     </div>
 
     <script>
-        // --- FUNGSI KEANGGOTAAN (MEMBERSHIP FUNCTIONS) ---
-
-        // Fungsi Linier Turun
-        function linearTurun(x, a, b) { // x = nilai input; a = batas bawah (keanggotaan 1); b = batas atas (keanggotaan 0)
+        function linearTurun(x, a, b) {
             if (x <= a) return 1;
             if (x >= b) return 0;
             return (b - x) / (b - a);
         }
 
-        // Fungsi Linier Naik
-        function linearNaik(x, a, b) { // x = nilai input; a = batas bawah (keanggotaan 0); b = batas atas (keanggotaan 1)
+        function linearNaik(x, a, b) { 
             if (x <= a) return 0;
             if (x >= b) return 1;
             return (x - a) / (b - a);
         }
 
-        // Fungsi Segitiga
-        function segitiga(x, a, b, c) { // x = nilai input; a = batas kiri; b = puncak; c = batas kanan
+        function segitiga(x, a, b, c) { 
             if (x <= a || x >= c) return 0;
             if (x === b) return 1;
             if (x > a && x < b) return (x - a) / (b - a);
             return (c - x) / (c - b);
         }
 
-        // Fungsi Trapesium (untuk output)
-        // a: batas kiri bawah, b: batas kiri atas (mulai puncak), c: batas kanan atas (akhir puncak), d: batas kanan bawah
         function trapesium(x, a, b, c, d) {
             if (x <= a || x >= d) return 0;
             if (x >= b && x <= c) return 1;
@@ -87,29 +83,26 @@
         }
 
 
-        // --- DEFINISI HIMPUNAN FUZZY UNTUK INPUT ---
         const suhuUdara = {
-            rendah: (x) => linearTurun(x, 10, 20),      // Batas bawah 10C (100%), batas atas 20C (0%)
-            ideal: (x) => segitiga(x, 18, 25, 32),    // Puncak di 25C
-            tinggi: (x) => linearNaik(x, 30, 40)       // Batas bawah 30C (0%), batas atas 40C (100%)
+            rendah: (x) => linearTurun(x, 10, 20),      
+            ideal: (x) => segitiga(x, 18, 25, 32),    
+            tinggi: (x) => linearNaik(x, 30, 40)      
         };
 
         const kelembapanTanah = {
-            kering: (x) => linearTurun(x, 0, 40),     // 0-40%
-            lembap: (x) => segitiga(x, 30, 60, 90),   // 30-90%, puncak 60%
-            basah: (x) => linearNaik(x, 80, 100)      // 80-100%
+            kering: (x) => linearTurun(x, 0, 40),     
+            lembap: (x) => segitiga(x, 30, 60, 90),   
+            basah: (x) => linearNaik(x, 80, 100)      
         };
 
         const phTanah = {
-            asam: (x) => linearTurun(x, 3, 5.5),      // pH 3-5.5
-            netral: (x) => segitiga(x, 5.0, 6.5, 7.5),// pH 5.0-7.5, puncak 6.5
-            basa: (x) => linearNaik(x, 7.5, 9)        // pH 7.5-9
+            asam: (x) => linearTurun(x, 3, 5.5),      
+            netral: (x) => segitiga(x, 5.0, 6.5, 7.5),
+            basa: (x) => linearNaik(x, 7.5, 9)        
         };
 
-        // --- DEFINISI HIMPUNAN FUZZY UNTUK OUTPUT (PilihanTanaman: 0-100) ---
-        // Kita akan memerlukan nilai representatif untuk setiap kategori output untuk defuzzyfikasi sederhana
         const outputTanaman = {
-            Sayur:       { mf: (x) => trapesium(x, 0, 10, 20, 30),   representatif: 15 }, // titik tengah puncak
+            Sayur:       { mf: (x) => trapesium(x, 0, 10, 20, 30),   representatif: 15 }, 
             Buah:        { mf: (x) => trapesium(x, 25, 35, 45, 55),  representatif: 40 },
             TanamanHias: { mf: (x) => trapesium(x, 50, 60, 70, 80),  representatif: 65 },
             TanamanObat: { mf: (x) => trapesium(x, 75, 85, 95, 100), representatif: 90 }
@@ -117,15 +110,12 @@
         const kategoriOutput = ["Sayur", "Buah", "TanamanHias", "TanamanObat"];
 
 
-        // --- KAIDAH FUZZY (RULES) ---
-        // Format: [ [input1_set, input2_set, input3_set], output_kategori ]
         const rules = [
-            // Suhu, LembabTanah, pH -> PilihanTanaman
             { antecedents: [suhuUdara.ideal, kelembapanTanah.lembap, phTanah.netral], consequent: "Sayur", desc: "Suhu Ideal, Tanah Lembap, pH Netral -> Sayur" },
             { antecedents: [suhuUdara.tinggi, kelembapanTanah.lembap, phTanah.asam], consequent: "Buah", desc: "Suhu Tinggi, Tanah Lembap, pH Asam -> Buah" },
             { antecedents: [suhuUdara.ideal, kelembapanTanah.kering, phTanah.netral], consequent: "TanamanHias", desc: "Suhu Ideal, Tanah Kering, pH Netral -> Tanaman Hias (Sukulen)" },
             { antecedents: [suhuUdara.rendah, kelembapanTanah.lembap, phTanah.netral], consequent: "TanamanObat", desc: "Suhu Rendah, Tanah Lembap, pH Netral -> Tanaman Obat" },
-            { antecedents: [suhuUdara.ideal, null, phTanah.netral], consequent: "Sayur", desc: "Suhu Ideal, pH Netral -> Sayur (LembabTanah tidak terlalu berpengaruh)" }, // Contoh aturan dgn input diabaikan (null)
+            { antecedents: [suhuUdara.ideal, null, phTanah.netral], consequent: "Sayur", desc: "Suhu Ideal, pH Netral -> Sayur (LembabTanah tidak terlalu berpengaruh)" }, 
             { antecedents: [null, kelembapanTanah.basah, null], consequent: "TanamanHias", desc: "Tanah Basah -> Tanaman Hias (Air)" },
             { antecedents: [suhuUdara.ideal, kelembapanTanah.lembap, phTanah.basa], consequent: "Buah", desc: "Suhu Ideal, Tanah Lembap, pH Basa -> Buah (Tertentu)" },
             { antecedents: [null, kelembapanTanah.lembap, phTanah.asam], consequent: "TanamanObat", desc: "Tanah Lembap, pH Asam -> Tanaman Obat" }
@@ -145,7 +135,6 @@
             }
             detailProsesText += `Input: Suhu=${suhu}°C, LembapTanah=${lembabT}%, pH=${phT}\n\n`;
 
-            // 1. Fuzzyfikasi Input
             const fuzzifiedSuhu = {
                 rendah: suhuUdara.rendah(suhu),
                 ideal: suhuUdara.ideal(suhu),
@@ -168,10 +157,8 @@
             detailProsesText += `  pH: Asam=${fuzzifiedPhT.asam.toFixed(2)}, Netral=${fuzzifiedPhT.netral.toFixed(2)}, Basa=${fuzzifiedPhT.basa.toFixed(2)}\n\n`;
 
 
-            // 2. Evaluasi Kaidah (Rule Evaluation) & Implikasi
-            // Menyimpan nilai alpha (kekuatan) untuk setiap kategori output
-            let kekuatanOutput = {}; // Misal: { Sayur: 0.5, Buah: 0.2, ... }
-            kategoriOutput.forEach(kat => kekuatanOutput[kat] = 0); // Inisialisasi semua kekuatan output ke 0
+            let kekuatanOutput = {}; 
+            kategoriOutput.forEach(kat => kekuatanOutput[kat] = 0); 
 
             detailProsesText += "Evaluasi Kaidah (Rule) & Implikasi (α):\n";
 
@@ -206,10 +193,7 @@
                 detailProsesText += `  ${kat}: ${kekuatanOutput[kat].toFixed(2)}\n`;
             }
 
-            // 4. Defuzzyfikasi (PENYEDERHANAAN: Weighted Average atau memilih yang alpha-nya tertinggi)
-            // Metode Centroid yang sebenarnya lebih kompleks.
-            // Kita gunakan metode rata-rata terbobot dari nilai representatif output,
-            // diboboti oleh kekuatan (alpha) masing-masing.
+
             let numerator = 0;
             let denominator = 0;
             let kategoriTerpilih = "Tidak ada rekomendasi";
@@ -220,7 +204,6 @@
                     numerator += kekuatanOutput[kategori] * outputTanaman[kategori].representatif;
                     denominator += kekuatanOutput[kategori];
                 }
-                // Juga lacak kategori dengan alpha tertinggi sebagai alternatif defuzzyfikasi sederhana
                 if (kekuatanOutput[kategori] > maxAlpha) {
                     maxAlpha = kekuatanOutput[kategori];
                     kategoriTerpilih = kategori;
@@ -231,7 +214,6 @@
             if (denominator > 0) {
                 hasilDefuzzifikasi = numerator / denominator;
                  detailProsesText += `\nDefuzzyfikasi (Weighted Average of Representatives): z* = ${hasilDefuzzifikasi.toFixed(2)}\n`;
-                 // Interpretasi z* (cari kategori terdekat dari nilai representatifnya)
                  let jarakTerkecil = Infinity;
                  for (const kategori in outputTanaman) {
                      const jarak = Math.abs(hasilDefuzzifikasi - outputTanaman[kategori].representatif);
